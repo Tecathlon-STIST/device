@@ -1,0 +1,12 @@
+[Unit]
+Description=device script
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/device.sh
+WorkingDirectory=/home/pi/device
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target
