@@ -1,6 +1,6 @@
 import asyncio, websockets, requests, json, obd, urllib, serial, os, threading
 import RPi.GPIO as GPIO
-from utils import auth, configs, vehicle, gps, banner, qr
+from utils import auth, configs, vehicle, gps, qr
 from datetime import datetime, timedelta
 
 connection = obd.OBD('/dev/ttyUSB0')
@@ -57,7 +57,6 @@ async def send_messages():
             await websocket.send(json.dumps(get_message(stats, vehicle_id)))
             await asyncio.sleep(0.2)
 
-banner.show()
 if not auth.is_authenticated():
     print("\nHey there, first of all, thanks for deciding to give alpaDrive a try! And yeah congrats on building your device!\nBefore we go any further, set up this device for your car by entering some basic identification details.\n")
     try:
