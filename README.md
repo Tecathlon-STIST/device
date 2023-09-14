@@ -5,17 +5,20 @@
 * [What's this](#whats-this)
     * [Role in the UX](#role-in-the-ux)
     * [Tech Stack](#tech-stack)
+    * [AI model](#ai-model)
 * [Setup Guide](#setup-guide)
     * [Hardware prerequisites](#hardware-prerequisites)
     * [Connection & Circuits](#connection--circuits)t
     * [Installation Instructions](#installation-instructions)
 
 ## What's this?
-The project requires some kind of computing platform running in the vehicle to be able to connect with it and monitor it. This platform should ideally work across multiple vehicles as well.
+The project requires some kind of computing platform running in the vehicle to be able to connect with it and monitor it. This platform should ideally work across multiple vehicles as well. This platform/device should also be capable of running inference tasks on the AI model to enable the safety features.
 ### Role in the UX
 This device aims to provide a plug and play experience for end users. It would just plug into your existing car's OBD-II port, hook up to the internet, and seamlessly pair with the [app](https://github.com/tecathlon-stist/app) to make the car connected, just like that!
 ### Tech Stack
 The device is essentially based off of a Raspberry Pi, with a NEO-6M GPS module. You can see more about the hardware in the [Hardware Prerequisites]() section. The software running on the Pi is written entirely in Python, and is a wrapper for the [python-OBD](https://github.com/brendan-w/python-OBD) library, with [systemd](https://systemd.io/) to manage the process.
+### AI model
+The model included in the project is just a pretrained version of the PilotNet model you can find in this codebase under `utils/ai.py`. It is a modified version of the one outlined in the paper [Explaining How a Deep Neural Network Trained with End-to-End Learning Steers a Car](https://arxiv.org/pdf/1704.07911.pdf) by NVIDIA Research, Google Research & New York University. This is basically a CNN that takes in as input an image of a given scene to produce a corresponding steering angle. However, we have found that by effeciently using backtracking, we are able to increase the output parameters to 3, namely, `steering_angle`, `brake_position` & `throttle_pedal`. As the data scarcity decreases & quality driving data is made available, this model can output values that are usable in real world conditions.
 
 ## Setup Guide
 This setup guide assumes you have the necessary hardware components ready to go. The software may not work correctly if you have some hardware setup the wrong way.

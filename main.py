@@ -1,12 +1,18 @@
-import asyncio, websockets, requests, json, obd, urllib, serial, os, threading
+import asyncio, picamera, websockets, requests, json, obd, urllib, serial, os, time, threading
 import RPi.GPIO as GPIO
-from utils import auth, configs, vehicle, gps, banner, qr
+from utils import auth, configs, vehicle, gps, qr, ai
 from datetime import datetime, timedelta
 
 connection = obd.OBD('/dev/ttyUSB0')
 GPIO.setmode(GPIO.BCM)
 button_pin = configs.BUTTON
 GPIO.setup(button_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+image_directory = '/home/pi/Pictures/'
+max_images = 50
+
+# instantiate the model with the saved image in predict mode
+model = ai.PilotNet(640, 480, predict=True)
+trained_model = 'sample.h5'
 
 def power_check():
     while True:
@@ -50,14 +56,31 @@ async def send_messages():
     uri = f'{configs.PROTOCOLS.get("wss")}{configs.SERVER_URL}/join/vehicle/{vehicle_id}'
     print('Trying to connect...')
 
-    async with websockets.connect(uri) as websocket:
-        print(f'{datetime.now().strftime("%H:%M:%S")}: Connected to server!')
-        while True:
-            stats = vehicle.get_stats(connection)
-            await websocket.send(json.dumps(get_message(stats, vehicle_id)))
-            await asyncio.sleep(0.2)
+    async with picamera.PiCamera() as camera:
+        camera.resolution = (640, 480)
+        camera.start_preview()
+        async with websockets.connect(uri) as websocket:
+            print(f'{datetime.now().strftime("%H:%M:%S")}: Connected to server!')
+            while True:
+                timestamp = time.strftime("%Y%m%d%H%M%S")
+                image_path = os.path.join(image_directory, f'image_{timestamp}.jpg')
+                camera.capture(image_path)
+                # capture the prediction for this scene
+                (steering, brake, throttle) = model.predict(image_path, given_model=trained_model)
 
-banner.show()
+                # the main job of get_stats() is to just get the current stats of the vehicle
+                # however, each time it takes the stats, it immediately also analyses the brake position
+                # and compares it with the predicted value to warn the driver
+                stats = vehicle.get_stats(connection, brake)
+                await websocket.send(json.dumps(get_message(stats, vehicle_id)))
+                await asyncio.sleep(0.2)
+
+                # delete images without letting the storage fill up
+                image_files = os.listdir(image_directory)
+                if len(image_files) > max_images:
+                    oldest_image = min(image_files, key=lambda x: os.path.getctime(os.path.join(image_directory, x)))
+                    os.remove(os.path.join(image_directory, oldest_image))
+
 if not auth.is_authenticated():
     print("\nHey there, first of all, thanks for deciding to give alpaDrive a try! And yeah congrats on building your device!\nBefore we go any further, set up this device for your car by entering some basic identification details.\n")
     try:
