@@ -1,5 +1,13 @@
-import obd
+import obd, time, pygame.mixer
 from utils import gps
+
+pygame.mixer.init()
+
+# utility function to play warning beep
+def warn():
+    audio_file_path = 'assets/alarm.mp3'
+    pygame.mixer.music.load(audio_file_path)
+    pygame.mixer.music.play()
 
 def predict_gear(speed, rpm):
     lookup_table = {
@@ -102,7 +110,7 @@ def get_stat(connection, command):
     except:
         return 0
 
-def get_stats(connection):
+def get_stats(connection, predicted_brake):
     rpm = get_stat(connection, obd.commands.RPM)
     speed = get_stat(connection, obd.commands.SPEED)
     temperature = get_stat(connection, obd.commands.COOLANT_TEMP)
@@ -110,6 +118,13 @@ def get_stats(connection):
     fuel = get_stat(connection, obd.commands.FUEL_LEVEL)
     gear = predict_gear(speed, rpm)
     location = gps.position()
+
+    # get the actual brake position now
+    brake = get_stat(connection, obd.COMMANDS.BRAKE_POSITION)
+    # compare with what the AI says
+    # the AI won't be accurate at this stage because of data scarcity
+    if brake < (predicted_brake - 10): # so, we'll give a headroom of 10% to avoid unnecesssary beeping
+        warn()
 
     return {
         "speed": speed,

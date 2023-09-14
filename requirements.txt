@@ -4,3 +4,6 @@ pyserial==3.4
 requests==2.31.0
 websockets==11.0.3
 qrcode==7.4.2
+pygame
+tensorflow
+picamera
